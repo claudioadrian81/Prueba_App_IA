@@ -1,0 +1,46 @@
+version: '3.9'
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-meal_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-meal_pass}
+      POSTGRES_DB: ${POSTGRES_DB:-meal_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgresql+psycopg2://meal_user:meal_pass@db:5432/meal_db}
+      IMAGE_STORAGE_PATH: ${IMAGE_STORAGE_PATH:-uploads}
+      SECRET_KEY: ${SECRET_KEY:-change-this-secret}
+      FOOD_VISION_PROVIDER: ${FOOD_VISION_PROVIDER:-mock}
+      NUTRITION_PROVIDER: ${NUTRITION_PROVIDER:-mock}
+      USDA_API_KEY: ${USDA_API_KEY:-}
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
